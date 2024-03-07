@@ -1,7 +1,7 @@
 import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeOutputsValue, INodeParams } from '../../../src/Interface'
 import { NodeVM } from 'vm2'
 import { DataSource } from 'typeorm'
-import { availableDependencies, defaultAllowBuiltInDep, getVars, prepareSandboxVars } from '../../../src/utils'
+import { availableDependencies, defaultAllowBuiltInDep, getVars, handleEscapeCharacters, prepareSandboxVars } from '../../../src/utils'
 
 class IfElseFunction_Utilities implements INode {
     label: string
@@ -95,7 +95,23 @@ class IfElseFunction_Utilities implements INode {
                 inputVars =
                     typeof functionInputVariablesRaw === 'object' ? functionInputVariablesRaw : JSON.parse(functionInputVariablesRaw)
             } catch (exception) {
-                throw new Error("Invalid JSON in the PromptTemplate's promptValues: " + exception)
+                throw new Error("Invalid JSON in the IfElse's Input Variables: " + exception)
+            }
+        }
+
+        // Some values might be a stringified JSON, parse it
+        for (const key in inputVars) {
+            let value = inputVars[key]
+            if (typeof value === 'string') {
+                value = handleEscapeCharacters(value, true)
+                if (value.startsWith('{') && value.endsWith('}')) {
+                    try {
+                        value = JSON.parse(value)
+                    } catch (e) {
+                        // ignore
+                    }
+                }
+                inputVars[key] = value
             }
         }
 
